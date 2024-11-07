@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0">
+    <meta name="Generator" content="asiide">
+    <meta name="Author" content="asi7">
+    <meta name="Keywords" content="asiide,asi,ai,agi,ide,ai ide">
+    <meta name="Description" content="Super AI IDE">
+    <title>asiide</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: "宋体";
+        }
+
+        #顶栏 {
+            height: 40px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        #中间 {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        #左边 {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            border-right: 5px solid #ddd;
+            cursor: col-resize;
+        }
+
+        #左上 {
+            height: 50%;
+            border-bottom: 5px solid #ddd;
+            cursor: row-resize;
+        }
+
+        #妙脑 {
+            width: 100%;
+            height: 100%;
+        }
+
+        #左下 {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        #左下 ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #左下 li {
+            padding: 5px 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        #左下 li:hover {
+            background: #f0f0f0;
+        }
+
+        #右边 {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .网址容器 {
+            margin-bottom: 20px;
+        }
+
+        .标签 {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        iframe {
+            width: 100%;
+            height: 800px;
+            border: 1px solid #ddd;
+        }
+
+        #底栏 {
+            height: 30px;
+            background: #f0f0f0;
+            border-top: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="顶栏">
+        <button onclick="渲染(公摩.getValue())">更新显示</button>
+    </div>
+    
+    <div id="中间">
+        <div id="左边">
+            <div id="左上">
+                <div id="妙脑"></div>
+            </div>
+            <div id="左下">
+                <ul id="标签列表"></ul>
+            </div>
+        </div>
+        <div id="右边"></div>
+    </div>
+    
+    <div id="底栏">
+        <span>状态: 就绪</span>
+    </div>
+
+    <script src="https://unpkg.com/monaco-editor@0.52.0/min/vs/loader.js"></script>
+    <script>
+        var 公摩 = null;
+var 公网址 = `
+deepseek https://chat.deepseek.com/ 
+kimi https://kimi.moonshot.cn/ 
+元宝 https://yuanbao.tencent.com 
+豆包 https://www.doubao.com/chat 
+BOLT https://bolt.new/
+//通义 https://tongyi.aliyun.com/qianwen 
+//智谱 https://chatglm.cn/main/alltoolsdetail?lang=zh 
+//V0 https://v0.dev/ 
+//POE https://poe.com/`;
+        function 初始化编辑器() {
+            require.config({ paths: { vs: 'https://unpkg.com/monaco-editor@0.52.0/min/vs' }});
+            require(['vs/editor/editor.main'], function() {
+                公摩 = monaco.editor.create(document.getElementById('妙脑'), {
+                    value: 公网址,
+                    language: 'html',
+                    theme: 'vs',
+                    fontSize: 14,
+                    fontFamily: '宋体',
+                    minimap: { enabled: false }
+                });
+                渲染(公网址);
+            });
+        }
+
+        function 渲染(参数) {
+            const 右边 = document.getElementById('右边');
+            const 标签列表 = document.getElementById('标签列表');
+            右边.innerHTML = '';
+            标签列表.innerHTML = '';
+            
+            const 行列表 = 参数.split('\n').filter(行 => 行.trim());
+            
+            行列表.forEach((行, 索引) => {
+                行 = 行.trim();
+                if(行.startsWith('//')) return;
+                
+                const [标签, 网址] = 行.split(' ');
+                if(!标签 || !网址) return;
+
+                // 创建标签列表项
+                const 列表项 = document.createElement('li');
+                列表项.textContent = 标签;
+                列表项.onclick = () => document.getElementById(标签).scrollIntoView();
+                标签列表.appendChild(列表项);
+
+                // 创建网址显示区域
+                const 容器 = document.createElement('div');
+                容器.className = '网址容器';
+                容器.id = 标签;
+
+                const 标签显示 = document.createElement('div');
+                标签显示.className = '标签';
+                标签显示.textContent = 标签;
+                容器.appendChild(标签显示);
+
+                const 框架 = document.createElement('iframe');
+                框架.src = 网址;
+                容器.appendChild(框架);
+
+                if(索引 < 行列表.length - 1) {
+                    const 分隔线 = document.createElement('hr');
+                    容器.appendChild(分隔线);
+                }
+
+                右边.appendChild(容器);
+            });
+        }
+
+        function 初始化拖拽() {
+            const 左边 = document.getElementById('左边');
+            const 左上 = document.getElementById('左上');
+            
+            let 正在拖拽列 = false;
+            let 正在拖拽行 = false;
+            let 起始X = 0;
+            let 起始Y = 0;
+            let 起始宽度 = 0;
+            let 起始高度 = 0;
+
+            左边.addEventListener('mousedown', function(e) {
+                if(e.offsetX > 左边.offsetWidth - 5) {
+                    正在拖拽列 = true;
+                    起始X = e.clientX;
+                    起始宽度 = 左边.offsetWidth;
+                }
+            });
+
+            左上.addEventListener('mousedown', function(e) {
+                if(e.offsetY > 左上.offsetHeight - 5) {
+                    正在拖拽行 = true;
+                    起始Y = e.clientY;
+                    起始高度 = 左上.offsetHeight;
+                }
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if(正在拖拽列) {
+                    const 新宽度 = 起始宽度 + (e.clientX - 起始X);
+                    左边.style.width = `${新宽度}px`;
+                }
+                if(正在拖拽行) {
+                    const 新高度 = 起始高度 + (e.clientY - 起始Y);
+                    左上.style.height = `${新高度}px`;
+                }
+            });
+
+            document.addEventListener('mouseup', function() {
+                正在拖拽列 = false;
+                正在拖拽行 = false;
+            });
+        }
+
+        // 初始化
+        初始化编辑器();
+        初始化拖拽();
+    </script>
+</body>
+</html>
