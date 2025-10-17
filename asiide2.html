@@ -1,1 +1,422 @@
-a
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git源码查看器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "宋体", SimSun, sans-serif;
+        }
+
+        body {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .工具栏 {
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .状态栏 {
+            padding: 5px 10px;
+            background-color: #f5f5f5;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .主容器 {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .编辑区 {
+            flex: 1;
+            height: 100%;
+            position: relative;
+        }
+
+        .预览区 {
+            flex: 1;
+            height: 100%;
+            border-left: 1px solid #ddd;
+        }
+
+        #脑 {
+            width: 100%;
+            height: 100%;
+        }
+
+        .预览框 {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .网址输入 {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .获取按钮 {
+            padding: 5px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .获取按钮:hover {
+            background-color: #45a049;
+        }
+
+        .平台选择 {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .加载中 {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            display: none;
+        }
+
+        .代理设置 {
+            margin-left: 10px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 200px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="工具栏">
+        <select class="平台选择" id="平台选择">
+      <option value="github">GitHub</option>
+      <option value="gitcode">GitCode</option>
+      <option value="gitee">Gitee</option>
+    </select>
+        <input type="text" class="网址输入" id="网址输入" placeholder="输入Git仓库URL..." value="https://github.com/asiide/asiide">
+        <input type="text" class="代理设置" id="代理设置" placeholder="CORS代理URL (可选)">
+        <button class="获取按钮" id="获取按钮">获取源码</button>
+        <button class="预览按钮" id="预览按钮">刷新预览</button>
+    </div>
+
+    <div class="主容器">
+        <div class="编辑区">
+            <div id="脑" style="width:100%;height:100%"></div>
+            <div class="加载中" id="加载中">加载中...</div>
+        </div>
+        <div class="预览区">
+            <iframe class="预览框" id="预览框"></iframe>
+        </div>
+    </div>
+
+    <div class="状态栏">
+        <div id="状态信息">就绪</div>
+        <div id="光标位置">行: 1, 列: 1</div>
+    </div>
+
+    <script src="https://unpkg.com/monaco-editor@0.52.2/min/vs/loader.js"></script>
+    <script>
+        var 公摩 = null;
+    var 当前源码 = "";
+    var 状态信息元素 = document.getElementById('状态信息');
+    var 光标位置元素 = document.getElementById('光标位置');
+    var 加载中元素 = document.getElementById('加载中');
+    
+    function 初始化编辑器() {
+      require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@0.52.2/min/vs' }});
+      require(['vs/editor/editor.main'], function() {
+        公摩 = monaco.editor.create(document.getElementById('脑'), {
+          value: '',
+          language: 'html',
+          theme: 'vs',
+          fontSize: 14,
+          fontFamily: '宋体, SimSun, monospace',
+          automaticLayout: true,
+          minimap: {
+            enabled: true
+          },
+          scrollBeyondLastLine: false,
+          lineNumbers: 'on',
+          rulers: [],
+          wordWrap: 'on',
+        });
+        
+        公摩.onDidChangeModelContent(function(e) {
+          当前源码 = 公摩.getValue();
+        });
+        
+        公摩.onDidChangeCursorPosition(function(e) {
+          更新光标位置(e.position);
+        });
+        
+        状态信息元素.textContent = "编辑器已准备就绪";
+      });
+    }
+    
+    function 更新光标位置(位置) {
+      光标位置元素.textContent = `行: ${位置.lineNumber}, 列: ${位置.column}`;
+    }
+    
+    function 解析GitHub链接(url) {
+      // 处理仓库根目录的URL (如 github.com/user/repo)
+      const repoRegex = /github\.com\/([^\/]+)\/([^\/]+)\/?$/;
+      const repoMatch = url.match(repoRegex);
+      
+      if (repoMatch) {
+        return {
+          用户名: repoMatch[1],
+          仓库名: repoMatch[2],
+          分支: 'main',
+          文件路径: 'index.html',
+          是根目录: true
+        };
+      }
+      
+      // 处理特定文件的URL (如 github.com/user/repo/blob/branch/path)
+      const fileRegex = /github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)/;
+      const fileMatch = url.match(fileRegex);
+      
+      if (fileMatch) {
+        return {
+          用户名: fileMatch[1],
+          仓库名: fileMatch[2],
+          分支: fileMatch[3],
+          文件路径: fileMatch[4],
+          是根目录: false
+        };
+      }
+      
+      return null;
+    }
+    
+    async function 获取GitHub内容(url) {
+      const 解析结果 = 解析GitHub链接(url);
+      if (!解析结果) {
+        throw new Error("无法解析GitHub URL");
+      }
+      
+      let apiUrl;
+      
+      if (解析结果.是根目录) {
+        // 尝试先获取index.html，如果失败则尝试获取README.md
+        try {
+          apiUrl = `https://api.github.com/repos/${解析结果.用户名}/${解析结果.仓库名}/contents/index.html`;
+          const 响应 = await fetch(apiUrl);
+          
+          if (响应.ok) {
+            const 数据 = await 响应.json();
+            return atob(数据.content);
+          } else {
+            // 如果没有index.html，尝试获取README.md
+            apiUrl = `https://api.github.com/repos/${解析结果.用户名}/${解析结果.仓库名}/contents/README.md`;
+            const 读我响应 = await fetch(apiUrl);
+            
+            if (读我响应.ok) {
+              const 读我数据 = await 读我响应.json();
+              return atob(读我数据.content);
+            } else {
+              throw new Error("仓库中未找到index.html或README.md文件");
+            }
+          }
+        } catch (错误) {
+          console.error("获取仓库内容错误:", 错误);
+          throw new Error("获取仓库内容失败");
+        }
+      } else {
+        // 获取特定文件
+        apiUrl = `https://api.github.com/repos/${解析结果.用户名}/${解析结果.仓库名}/contents/${解析结果.文件路径}?ref=${解析结果.分支}`;
+        
+        const 响应 = await fetch(apiUrl);
+        if (!响应.ok) {
+          throw new Error(`GitHub API错误: ${响应.status}`);
+        }
+        
+        const 数据 = await 响应.json();
+        return atob(数据.content);
+      }
+    }
+    
+    function 解析其他平台链接(url) {
+      // 检查URL是否有/blob/部分，如果有则替换为/raw/
+      if (url.includes('/blob/')) {
+        return url.replace('/blob/', '/raw/');
+      }
+      
+      // 如果是仓库根URL，尝试添加/raw/主分支/index.html
+      if (url.match(/\/(gitcode|gitee)\.com\/[^\/]+\/[^\/]+\/?$/)) {
+        return `${url.replace(/\/$/, '')}/raw/master/index.html`;
+      }
+      
+      return url;
+    }
+    
+    async function 获取其他平台内容(url) {
+      const 原始内容URL = 解析其他平台链接(url);
+      const 代理URL = document.getElementById('代理设置').value.trim();
+      
+      let 请求URL = 原始内容URL;
+      if (代理URL) {
+        请求URL = 代理URL + 原始内容URL;
+      }
+      
+      try {
+        const 响应 = await fetch(请求URL);
+        if (!响应.ok) {
+          throw new Error(`获取失败: ${响应.status}`);
+        }
+        return await 响应.text();
+      } catch (错误) {
+        if (!代理URL) {
+          throw new Error(`由于CORS限制，无法直接访问。请尝试使用CORS代理服务。`);
+        } else {
+          throw 错误;
+        }
+      }
+    }
+    
+    async function 获取源码() {
+      const 平台 = document.getElementById('平台选择').value;
+      const 网址 = document.getElementById('网址输入').value.trim();
+      
+      if (!网址) {
+        状态信息元素.textContent = "请输入有效的Git仓库URL";
+        return;
+      }
+      
+      加载中元素.style.display = 'flex';
+      状态信息元素.textContent = "正在获取源码...";
+      
+      try {
+        let 源码内容 = '';
+        
+        if (平台 === 'github') {
+          源码内容 = await 获取GitHub内容(网址);
+        } else {
+          源码内容 = await 获取其他平台内容(网址);
+        }
+        
+        当前源码 = 源码内容;
+        
+        if (公摩) {
+          公摩.setValue(源码内容);
+          更新预览();
+        }
+        
+        状态信息元素.textContent = "源码获取成功";
+      } catch (错误) {
+        console.error('获取源码失败:', 错误);
+        状态信息元素.textContent = `错误: ${错误.message}`;
+      } finally {
+        加载中元素.style.display = 'none';
+      }
+    }
+    
+    function 自动检测平台(网址) {
+      if (网址.includes('github.com')) {
+        document.getElementById('平台选择').value = 'github';
+      } else if (网址.includes('gitcode.com')) {
+        document.getElementById('平台选择').value = 'gitcode';
+      } else if (网址.includes('gitee.com')) {
+        document.getElementById('平台选择').value = 'gitee';
+      }
+    }
+    
+    function 更新预览() {
+      const 预览框 = document.getElementById('预览框');
+      const 内容 = 当前源码;
+      const blob = new Blob([内容], { type: 'text/html' });
+      预览框.src = URL.createObjectURL(blob);
+    }
+    
+    function 设置文件上传() {
+      const 文件输入 = document.createElement('input');
+      文件输入.type = 'file';
+      文件输入.style.display = 'none';
+      文件输入.accept = '.html,.htm,.css,.js,.txt';
+      
+      document.body.appendChild(文件输入);
+      
+      文件输入.addEventListener('change', function(e) {
+        if (文件输入.files.length > 0) {
+          const 文件 = 文件输入.files[0];
+          const 读取器 = new FileReader();
+          
+          读取器.onload = function(e) {
+            当前源码 = e.target.result;
+            公摩.setValue(当前源码);
+            更新预览();
+            状态信息元素.textContent = `已加载文件: ${文件.name}`;
+          };
+          
+          读取器.readAsText(文件);
+        }
+      });
+      
+      return 文件输入;
+    }
+    
+    document.getElementById('获取按钮').addEventListener('click', 获取源码);
+    document.getElementById('预览按钮').addEventListener('click', 更新预览);
+    
+    document.getElementById('网址输入').addEventListener('input', function(e) {
+      自动检测平台(e.target.value);
+    });
+    
+    const 上传按钮 = document.createElement('button');
+    上传按钮.textContent = '上传文件';
+    上传按钮.className = '获取按钮';
+    上传按钮.style.marginLeft = '10px';
+    
+    const 工具栏 = document.querySelector('.工具栏');
+    工具栏.appendChild(上传按钮);
+    
+    const 文件输入 = 设置文件上传();
+    上传按钮.addEventListener('click', function() {
+      文件输入.click();
+    });
+    
+    window.onload = function() {
+      初始化编辑器();
+      document.getElementById('代理设置').value = 'https://cors-anywhere.herokuapp.com/';
+      // 自动设置平台为GitHub
+      自动检测平台(document.getElementById('网址输入').value);
+    };
+    </script>
+
+
+    
+</body>
+
+</html>
