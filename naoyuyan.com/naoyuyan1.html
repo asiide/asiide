@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOM函数测试页面</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .测试div {
+            padding: 20px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .高亮 {
+            border-color: #007acc;
+            box-shadow: 0 0 15px rgba(0, 122, 204, 0.5);
+            transform: scale(1.02);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .特殊 {
+            transform: rotate(2deg) scale(1.05);
+            font-weight: bold;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+        }
+
+        .容器 {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 10px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .按钮 {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .按钮:hover {
+            background: #005a9e;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .输入框 {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+            font-size: 12px;
+        }
+
+        .可删除 {
+            background: #ffebee;
+            border-color: #f44336;
+            color: #c62828;
+        }
+
+        .动态元素 {
+            background: #e8f5e8;
+            border: 2px dashed #4caf50;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            animation: 出现动画 0.5s ease-out;
+        }
+
+        @keyframes 出现动画 {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .网格容器 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .卡片 {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .卡片:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="容器">
+        <h1>DOM函数完整测试页面</h1>
+        <div class="测试div">这是第一个测试元素 - 点击我试试各种效果</div>
+        <div class="测试div">这是第二个测试元素 - 我也可以点击和操作</div>
+        <div class="测试div 特殊">这是第三个测试元素 - 我有特殊的初始样式</div>
+        <div class="测试div 可删除">这是可删除的测试元素 - 删除功能会移除我</div>
+
+        <div class="容器">
+            <h3>基础交互测试区</h3>
+            <button class="按钮" onclick="测试函数('添加类名', '.测试div', '高亮')">添加高亮效果</button>
+            <button class="按钮" onclick="测试函数('删除类名', '.测试div', '高亮')">删除高亮效果</button>
+            <button class="按钮" onclick="测试函数('切换类名', '.测试div', '特殊')">切换特殊样式</button>
+            <button class="按钮" onclick="测试函数('隐藏元素', '.测试div')">隐藏元素</button>
+            <button class="按钮" onclick="测试函数('显示元素', '.测试div')">显示元素</button>
+            <button class="按钮" onclick="测试函数('删除元素', '.可删除')">删除指定元素</button>
+
+            <div style="margin-top: 15px;">
+                <input type="text" class="输入框" id="新内容" placeholder="输入新的文本内容" style="width: 200px;">
+                <button class="按钮" onclick="更新内容()">更新文本内容</button>
+                <button class="按钮" onclick="更新HTML内容()">更新HTML内容</button>
+            </div>
+        </div>
+
+        <div class="容器">
+            <h3>动画效果测试区</h3>
+            <button class="按钮" onclick="测试函数('淡入', '.测试div', 800)">淡入动画</button>
+            <button class="按钮" onclick="测试函数('淡出', '.测试div', 800)">淡出动画</button>
+            <button class="按钮" onclick="测试函数('弹跳', '.测试div', 600)">弹跳动画</button>
+            <button class="按钮" onclick="测试函数('旋转', '.测试div', 360, 1000)">旋转动画</button>
+            <button class="按钮" onclick="测试函数('滑入', '.测试div', 500)">滑入动画</button>
+        </div>
+
+        <div id="动态容器" class="容器">
+            <h3>动态内容生成区域</h3>
+            <p>这里会显示通过JavaScript动态创建的内容</p>
+            <button class="按钮" onclick="创建新元素()">创建新元素</button>
+            <button class="按钮" onclick="创建复杂结构()">创建复杂结构</button>
+            <button class="按钮" onclick="批量创建元素()">批量创建</button>
+            <button class="按钮" onclick="清空动态内容()">清空内容</button>
+
+            <div class="网格容器" id="网格区域">
+                <div class="卡片">
+                    <h4>示例卡片 1</h4>
+                    <p>这是一个示例卡片内容</p>
+                </div>
+                <div class="卡片">
+                    <h4>示例卡片 2</h4>
+                    <p>这是另一个示例卡片</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="容器">
+            <h3>高级功能测试区</h3>
+            <button class="按钮" onclick="获取元素信息()">获取元素信息</button>
+            <button class="按钮" onclick="批量处理元素()">批量处理</button>
+            <button class="按钮" onclick="元素关系测试()">元素关系测试</button>
+            <button class="按钮" onclick="属性操作测试()">属性操作</button>
+            <button class="按钮" onclick="克隆元素测试()">克隆元素</button>
+        </div>
+    </div>
+
+    <script>
+        const DOM函数库引用 = window.DOM函数库 || {
+            获取元素: function(选择器) {
+                const 元素 = document.querySelector(选择器);
+                console.log('获取元素:', 选择器, '->', 元素);
+                return 元素;
+            },
+            
+            获取所有元素: function(选择器) {
+                const 元素列表 = document.querySelectorAll(选择器);
+                console.log('获取所有元素:', 选择器, '->', 元素列表.length, '个');
+                return Array.from(元素列表);
+            },
+            
+            添加类名: function(选择器, 类名) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    元素.classList.add(类名);
+                    console.log('添加类名:', 选择器, 类名);
+                    return true;
+                }
+                return false;
+            },
+            
+            删除类名: function(选择器, 类名) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    元素.classList.remove(类名);
+                    console.log('删除类名:', 选择器, 类名);
+                    return true;
+                }
+                return false;
+            },
+            
+            切换类名: function(选择器, 类名) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    const 结果 = 元素.classList.toggle(类名);
+                    console.log('切换类名:', 选择器, 类名, '->', 结果);
+                    return 结果;
+                }
+                return false;
+            },
+            
+            是否包含类名: function(选择器, 类名) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    const 结果 = 元素.classList.contains(类名);
+                    console.log('包含类名:', 选择器, 类名, '->', 结果);
+                    return 结果;
+                }
+                return false;
+            },
+            
+            获取样式: function(选择器, 样式属性) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    const 值 = window.getComputedStyle(元素).getPropertyValue(样式属性);
+                    console.log('获取样式:', 选择器, 样式属性, '->', 值);
+                    return 值;
+                }
+                return null;
+            },
+            
+            设置样式: function(选择器, 样式属性, 值) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    元素.style.setProperty(样式属性, 值);
+                    console.log('设置样式:', 选择器, 样式属性, 值);
+                    return true;
+                }
+                return false;
+            },
+            
+            设置内容: function(选择器, 内容) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    元素.textContent = 内容;
+                    console.log('设置内容:', 选择器, 内容);
+                    return true;
+                }
+                return false;
+            },
+            
+            设置HTML: function(选择器, 内容) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    元素.innerHTML = 内容;
+                    console.log('设置HTML:', 选择器, 内容);
+                    return true;
+                }
+                return false;
+            },
+            
+            获取内容: function(选择器) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    const 内容 = 元素.textContent;
+                    console.log('获取内容:', 选择器, '->', 内容);
+                    return 内容;
+                }
+                return null;
+            },
+            
+            获取HTML: function(选择器) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    const 内容 = 元素.innerHTML;
+                    console.log('获取HTML:', 选择器, '->', 内容);
+                    return 内容;
+                }
+                return null;
+            },
+            
+            显示元素: function(选择器) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    元素.style.display = '';
+                    console.log('显示元素:', 选择器);
+                    return true;
+                }
+                return false;
+            },
+            
+            隐藏元素: function(选择器) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    元素.style.display = 'none';
+                    console.log('隐藏元素:', 选择器);
+                    return true;
+                }
+                return false;
+            },
+            
+            删除元素: function(选择器) {
+                const 元素 = this.获取元素(选择器);
+                if (元素 && 元素.parentNode) {
+                    元素.parentNode.removeChild(元素);
+                    console.log('删除元素:', 选择器);
+                    return true;
+                }
+                return false;
+            },
+            
+            创建元素: function(标签名) {
+                const 元素 = document.createElement(标签名);
+                console.log('创建元素:', 标签名, '->', 元素);
+                return 元素;
+            },
+            
+            添加子元素: function(父选择器, 子元素) {
+                const 父元素 = this.获取元素(父选择器);
+                if (父元素 && 子元素) {
+                    父元素.appendChild(子元素);
+                    console.log('添加子元素到:', 父选择器);
+                    return true;
+                }
+                return false;
+            },
+            
+            克隆元素: function(选择器, 深度克隆) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    const 克隆结果 = 元素.cloneNode(深度克隆 !== false);
+                    console.log('克隆元素:', 选择器, '深度:', 深度克隆);
+                    return 克隆结果;
+                }
+                return null;
+            },
+            
+            设置属性: function(选择器, 属性名, 值) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    元素.setAttribute(属性名, 值);
+                    console.log('设置属性:', 选择器, 属性名, 值);
+                    return true;
+                }
+                return false;
+            },
+            
+            获取属性: function(选择器, 属性名) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    const 值 = 元素.getAttribute(属性名);
+                    console.log('获取属性:', 选择器, 属性名, '->', 值);
+                    return 值;
+                }
+                return null;
+            },
+            
+            获取位置: function(选择器) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    const 矩形 = 元素.getBoundingClientRect();
+                    const 位置 = {
+                        左: 矩形.left,
+                        顶: 矩形.top,
+                        宽: 矩形.width,
+                        高: 矩形.height
+                    };
+                    console.log('获取位置:', 选择器, '->', 位置);
+                    return 位置;
+                }
+                return null;
+            },
+            
+            获取子元素: function(选择器) {
+                const 元素 = this.获取元素(选择器);
+                if (元素) {
+                    const 子元素列表 = Array.from(元素.children);
+                    console.log('获取子元素:', 选择器, '->', 子元素列表.length, '个');
+                    return 子元素列表;
+                }
+                return [];
+            },
+            
+            动画: function(选择器, 关键帧, 选项) {
+                const 元素 = this.获取元素(选择器);
+                if (元素 && 元素.animate) {
+                    const 动画实例 = 元素.animate(关键帧, 选项);
+                    console.log('执行动画:', 选择器);
+                    return 动画实例;
+                }
+                return null;
+            },
+            
+            淡入: function(选择器, 持续时间) {
+                const 时间 = 持续时间 || 300;
+                console.log('淡入动画:', 选择器, 时间 + 'ms');
+                return this.动画(选择器, [
+                    { opacity: 0 },
+                    { opacity: 1 }
+                ], { duration: 时间 });
+            },
+            
+            淡出: function(选择器, 持续时间) {
+                const 时间 = 持续时间 || 300;
+                console.log('淡出动画:', 选择器, 时间 + 'ms');
+                return this.动画(选择器, [
+                    { opacity: 1 },
+                    { opacity: 0 }
+                ], { duration: 时间 });
+            },
+            
+            弹跳: function(选择器, 持续时间) {
+                const 时间 = 持续时间 || 600;
+                console.log('弹跳动画:', 选择器, 时间 + 'ms');
+                return this.动画(选择器, [
+                    { transform: 'scale(1)' },
+                    { transform: 'scale(1.1)' },
+                    { transform: 'scale(0.9)' },
+                    { transform: 'scale(1)' }
+                ], { duration: 时间 });
+            },
+            
+            旋转: function(选择器, 角度, 持续时间) {
+                const 度数 = 角度 || 360;
+                const 时间 = 持续时间 || 1000;
+                console.log('旋转动画:', 选择器, 度数 + '度', 时间 + 'ms');
+                return this.动画(选择器, [
+                    { transform: 'rotate(0deg)' },
+                    { transform: 'rotate(' + 度数 + 'deg)' }
+                ], { duration: 时间 });
+            },
+            
+            滑入: function(选择器, 持续时间) {
+                const 时间 = 持续时间 || 300;
+                console.log('滑入动画:', 选择器, 时间 + 'ms');
+                return this.动画(选择器, [
+                    { transform: 'translateY(-20px)', opacity: 0 },
+                    { transform: 'translateY(0)', opacity: 1 }
+                ], { duration: 时间 });
+            }
+        };
+        
+        function 测试函数(函数名, ...参数) {
+            try {
+                const 结果 = DOM函数库引用[函数名].apply(DOM函数库引用, 参数);
+                console.log('测试结果:', 函数名, 参数, '->', 结果);
+                return 结果;
+            } catch (错误) {
+                console.error('测试错误:', 函数名, 错误);
+                return false;
+            }
+        }
+        
+        function 更新内容() {
+            const 新内容 = document.getElementById('新内容').value;
+            if (新内容) {
+                测试函数('设置内容', '.测试div', 新内容);
+                document.getElementById('新内容').value = '';
+            }
+        }
+        
+        function 更新HTML内容() {
+            const 新内容 = document.getElementById('新内容').value;
+            if (新内容) {
+                测试函数('设置HTML', '.测试div', '<em>' + 新内容 + '</em>');
+                document.getElementById('新内容').value = '';
+            }
+        }
+        
+        function 创建新元素() {
+            const 新元素 = DOM函数库引用.创建元素('div');
+            新元素.className = '动态元素';
+            新元素.textContent = '这是动态创建的元素 #' + (++window.元素计数器 || 1);
+            DOM函数库引用.添加子元素('#动态容器', 新元素);
+        }
+        
+        function 创建复杂结构() {
+            const 容器 = DOM函数库引用.创建元素('div');
+            容器.className = '动态元素';
+            容器.innerHTML = '<h4>复杂结构</h4><p>包含多个子元素的复杂结构</p><button onclick="alert('点击成功!')">点击测试</button>';
+            DOM函数库引用.添加子元素('#动态容器', 容器);
+        }
+        
+        function 批量创建元素() {
+            for (let i = 1; i <= 3; i++) {
+                const 元素 = DOM函数库引用.创建元素('div');
+                元素.className = '卡片';
+                元素.innerHTML = '<h4>批量创建 ' + i + '</h4><p>这是批量创建的第 ' + i + ' 个元素</p>';
+                DOM函数库引用.添加子元素('#网格区域', 元素);
+            }
+        }
+        
+        function 清空动态内容() {
+            const 动态元素列表 = DOM函数库引用.获取所有元素('.动态元素');
+            动态元素列表.forEach(function(元素) {
+                if (元素.parentNode) {
+                    元素.parentNode.removeChild(元素);
+                }
+            });
+        }
+        
+        function 获取元素信息() {
+            const 第一个元素 = DOM函数库引用.获取元素('.测试div');
+            if (第一个元素) {
+                const 位置 = DOM函数库引用.获取位置('.测试div');
+                const 内容 = DOM函数库引用.获取内容('.测试div');
+                alert('元素信息:\n内容: ' + 内容 + '\n宽度: ' + 位置.宽 + 'px\n高度: ' + 位置.高 + 'px');
+            }
+        }
+        
+        function 批量处理元素() {
+            const 所有测试元素 = DOM函数库引用.获取所有元素('.测试div');
+            所有测试元素.forEach(function(元素, 索引) {
+                setTimeout(function() {
+                    DOM函数库引用.添加类名('.测试div:nth-child(' + (索引 + 1) + ')', '高亮');
+                    setTimeout(function() {
+                        DOM函数库引用.删除类名('.测试div:nth-child(' + (索引 + 1) + ')', '高亮');
+                    }, 500);
+                }, 索引 * 200);
+            });
+        }
+        
+        function 元素关系测试() {
+            const 子元素列表 = DOM函数库引用.获取子元素('.容器');
+            alert('第一个容器包含 ' + 子元素列表.length + ' 个子元素');
+        }
+        
+        function 属性操作测试() {
+            测试函数('设置属性', '.测试div', 'data-test', '测试数据');
+            const 属性值 = 测试函数('获取属性', '.测试div', 'data-test');
+            alert('设置并读取属性值: ' + 属性值);
+        }
+        
+        function 克隆元素测试() {
+            const 原始元素 = DOM函数库引用.获取元素('.测试div');
+            if (原始元素) {
+                const 克隆元素 = DOM函数库引用.克隆元素('.测试div', true);
+                克隆元素.textContent = '这是克隆的元素';
+                克隆元素.style.border = '2px dashed #ff6b6b';
+                DOM函数库引用.添加子元素('#动态容器', 克隆元素);
+            }
+        }
+        
+        window.元素计数器 = 0;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const 测试元素列表 = document.querySelectorAll('.测试div');
+            测试元素列表.forEach(function(元素, 索引) {
+                元素.addEventListener('click', function() {
+                    console.log('点击了测试元素:', 索引 + 1);
+                    测试函数('弹跳', '.测试div:nth-child(' + (索引 + 1) + ')', 400);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
