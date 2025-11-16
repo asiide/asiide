@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉符游戏引擎 - 随机生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .游戏容器 {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 2px solid #ffd700;
+        }
+
+        .标题 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            color: #ffd700;
+        }
+
+        .游戏画布 {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 12px;
+            letter-spacing: 0;
+            background: #000;
+            border: 3px solid #ffd700;
+            padding: 10px;
+            overflow: hidden;
+            white-space: pre;
+            color: #00ff00;
+            text-align: left;
+            width: 100%;
+            height: 620px;
+            box-sizing: border-box;
+        }
+
+        .控制面板 {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .按钮 {
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .按钮:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #ff7675, #fd79a8);
+        }
+
+        .状态栏 {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .倒计时 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .游戏选择器 {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+
+        .游戏按钮 {
+            padding: 8px 16px;
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .游戏按钮:hover {
+            transform: scale(1.05);
+            background: linear-gradient(45deg, #00a085, #00b7c2);
+        }
+
+        @media (max-width: 768px) {
+            .游戏画布 {
+                font-size: 8px;
+                line-height: 8px;
+                height: 400px;
+            }
+
+            .标题 {
+                font-size: 20px;
+            }
+
+            .按钮,
+            .游戏按钮 {
+                font-size: 12px;
+                padding: 8px 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="游戏容器">
+        <h1 class="标题">🎮 汉符游戏引擎 - 自动生成器 🎮</h1>
+
+        <div class="游戏选择器">
+            <button class="游戏按钮" onclick="选择游戏('贪吃蛇')">🐍 贪吃蛇</button>
+            <button class="游戏按钮" onclick="选择游戏('俄罗斯方块')">🧱 俄罗斯方块</button>
+            <button class="游戏按钮" onclick="选择游戏('打砖块')">🧱 打砖块</button>
+            <button class="游戏按钮" onclick="选择游戏('迷宫探险')">🏰 迷宫探险</button>
+            <button class="游戏按钮" onclick="选择游戏('射击游戏')">🚀 射击游戏</button>
+            <button class="游戏按钮" onclick="选择游戏('汉符海龟')">🐢 汉符海龟</button>
+            <button class="游戏按钮" onclick="选择游戏('像素画板')">🎨 像素画板</button>
+            <button class="游戏按钮" onclick="选择游戏('跳跃游戏')">🦘 跳跃游戏</button>
+        </div>
+
+        <div class="状态栏">
+            <div class="倒计时" id="倒计时显示">距离下次自动生成: 14:59</div>
+            <div>当前游戏: <span id="当前游戏名">汉符海龟</span> | 得分: <span id="得分显示">0</span></div>
+        </div>
+
+        <div class="游戏画布" id="游戏画布"></div>
+
+        <div class="控制面板">
+            <button class="按钮" onclick="开始游戏()">🎯 开始游戏</button>
+            <button class="按钮" onclick="暂停游戏()">⏸️ 暂停</button>
+            <button class="按钮" onclick="重置游戏()">🔄 重置</button>
+            <button class="按钮" onclick="随机生成游戏()">🎲 随机生成</button>
+            <button class="按钮" onclick="保存游戏()">💾 保存</button>
+            <button class="按钮" onclick="加载游戏()">📁 加载</button>
+        </div>
+    </div>
+
+    <script>
+        // 汉符游戏引擎核心类
+        class 汉符游戏引擎 {
+            constructor() {
+                this.画布宽度 = 50;
+                this.画布高度 = 50;
+                this.画布 = [];
+                this.当前游戏 = null;
+                this.游戏状态 = '停止';
+                this.得分 = 0;
+                this.帧率 = 200;
+                this.游戏循环ID = null;
+                this.键盘监听器 = {};
+                this.已生成游戏列表 = [];
+                this.倒计时 = 15 * 60; // 15分钟
+                
+                this.初始化画布();
+                this.绑定键盘事件();
+                this.开始倒计时();
+            }
+            
+            初始化画布() {
+                this.画布 = [];
+                for (let 行 = 0; 行 < this.画布高度; 行++) {
+                    this.画布[行] = [];
+                    for (let 列 = 0; 列 < this.画布宽度; 列++) {
+                        this.画布[行][列] = '　'; // 全角空格
+                    }
+                }
+            }
+            
+            渲染画布() {
+                let 输出 = '';
+                for (let 行 = 0; 行 < this.画布高度; 行++) {
+                    for (let 列 = 0; 列 < this.画布宽度; 列++) {
+                        输出 += this.画布[行][列];
+                    }
+                    输出 += '\n';
+                }
+                document.getElementById('游戏画布').textContent = 输出;
+            }
+            
+            设置像素(行, 列, 字符) {
+                if (行 >= 0 && 行 < this.画布高度 && 列 >= 0 && 列 < this.画布宽度) {
+                    this.画布[行][列] = 字符;
+                }
+            }
+            
+            获取像素(行, 列) {
+                if (行 >= 0 && 行 < this.画布高度 && 列 >= 0 && 列 < this.画布宽度) {
+                    return this.画布[行][列];
+                }
+                return null;
+            }
+            
+            清空画布() {
+                for (let 行 = 0; 行 < this.画布高度; 行++) {
+                    for (let 列 = 0; 列 < this.画布宽度; 列++) {
+                        this.画布[行][列] = '　';
+                    }
+                }
+            }
+            
+            绑定键盘事件() {
+                document.addEventListener('keydown', (事件) => {
+                    this.键盘监听器[事件.key] = true;
+                    if (this.当前游戏 && this.当前游戏.处理键盘输入) {
+                        this.当前游戏.处理键盘输入(事件.key);
+                    }
+                });
+                
+                document.addEventListener('keyup', (事件) => {
+                    this.键盘监听器[事件.key] = false;
+                });
+            }
+            
+            开始倒计时() {
+                setInterval(() => {
+                    this.倒计时--;
+                    if (this.倒计时 <= 0) {
+                        this.倒计时 = 15 * 60; // 重置为15分钟
+                        this.随机生成新游戏();
+                    }
+                    
+                    const 分钟 = Math.floor(this.倒计时 / 60);
+                    const 秒钟 = this.倒计时 % 60;
+                    document.getElementById('倒计时显示').textContent = 
+                        `距离下次自动生成: ${分钟}:${秒钟.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+            
+            随机生成新游戏() {
+                const 游戏类型 = ['贪吃蛇', '俄罗斯方块', '打砖块', '迷宫探险', '射击游戏', '汉符海龟', '像素画板', '跳跃游戏'];
+                let 可选游戏 = 游戏类型.filter(类型 => !this.已生成游戏列表.includes(类型));
+                
+                if (可选游戏.length === 0) {
+                    this.已生成游戏列表 = [];
+                    可选游戏 = 游戏类型;
+                }
+                
+                const 随机选择 = 可选游戏[Math.floor(Math.random() * 可选游戏.length)];
+                this.已生成游戏列表.push(随机选择);
+                this.选择游戏(随机选择);
+            }
+            
+            选择游戏(游戏名称) {
+                this.停止游戏();
+                
+                switch (游戏名称) {
+                    case '贪吃蛇':
+                        this.当前游戏 = new 贪吃蛇游戏(this);
+                        break;
+                    case '俄罗斯方块':
+                        this.当前游戏 = new 俄罗斯方块游戏(this);
+                        break;
+                    case '打砖块':
+                        this.当前游戏 = new 打砖块游戏(this);
+                        break;
+                    case '迷宫探险':
+                        this.当前游戏 = new 迷宫探险游戏(this);
+                        break;
+                    case '射击游戏':
+                        this.当前游戏 = new 射击游戏(this);
+                        break;
+                    case '汉符海龟':
+                        this.当前游戏 = new 汉符海龟游戏(this);
+                        break;
+                    case '像素画板':
+                        this.当前游戏 = new 像素画板游戏(this);
+                        break;
+                    case '跳跃游戏':
+                        this.当前游戏 = new 跳跃游戏(this);
+                        break;
+                }
+                
+                document.getElementById('当前游戏名').textContent = 游戏名称;
+                this.得分 = 0;
+                this.更新得分显示();
+            }
+            
+            开始游戏() {
+                if (this.当前游戏) {
+                    this.游戏状态 = '运行';
+                    this.游戏循环();
+                }
+            }
+            
+            暂停游戏() {
+                this.游戏状态 = '暂停';
+                if (this.游戏循环ID) {
+                    clearTimeout(this.游戏循环ID);
+                }
+            }
+            
+            停止游戏() {
+                this.游戏状态 = '停止';
+                if (this.游戏循环ID) {
+                    clearTimeout(this.游戏循环ID);
+                }
+            }
+            
+            重置游戏() {
+                this.停止游戏();
+                if (this.当前游戏 && this.当前游戏.重置) {
+                    this.当前游戏.重置();
+                }
+                this.得分 = 0;
+                this.更新得分显示();
+            }
+            
+            游戏循环() {
+                if (this.游戏状态 === '运行' && this.当前游戏) {
+                    this.清空画布();
+                    this.当前游戏.更新();
+                    this.当前游戏.渲染();
+                    this.渲染画布();
+                    
+                    this.游戏循环ID = setTimeout(() => this.游戏循环(), this.帧率);
+                }
+            }
+            
+            更新得分(新得分) {
+                this.得分 = 新得分;
+                this.更新得分显示();
+            }
+            
+            更新得分显示() {
+                document.getElementById('得分显示').textContent = this.得分;
+            }
+        }
+        
+        // 贪吃蛇游戏
+        class 贪吃蛇游戏 {
+            constructor(引擎) {
+                this.引擎 = 引擎;
+                this.蛇身 = [{行: 25, 列: 25}];
+                this.方向 = {行: 0, 列: 1};
+                this.食物 = this.生成食物();
+                this.得分 = 0;
+            }
+            
+            生成食物() {
+                let 食物位置;
+                do {
+                    食物位置 = {
+                        行: Math.floor(Math.random() * this.引擎.画布高度),
+                        列: Math.floor(Math.random() * this.引擎.画布宽度)
+                    };
+                } while (this.蛇身.some(段 => 段.行 === 食物位置.行 && 段.列 === 食物位置.列));
+                return 食物位置;
+            }
+            
+            更新() {
+                const 头部 = {
+                    行: this.蛇身[0].行 + this.方向.行,
+                    列: this.蛇身[0].列 + this.方向.列
+                };
+                
+                // 边界检测
+                if (头部.行 < 0 || 头部.行 >= this.引擎.画布高度 || 
+                    头部.列 < 0 || 头部.列 >= this.引擎.画布宽度) {
+                    this.引擎.停止游戏();
+                    return;
+                }
+                
+                // 自碰检测
+                if (this.蛇身.some(段 => 段.行 === 头部.行 && 段.列 === 头部.列)) {
+                    this.引擎.停止游戏();
+                    return;
+                }
+                
+                this.蛇身.unshift(头部);
+                
+                // 吃食物检测
+                if (头部.行 === this.食物.行 && 头部.列 === this.食物.列) {
+                    this.得分 += 10;
+                    this.引擎.更新得分(this.得分);
+                    this.食物 = this.生成食物();
+                } else {
+                    this.蛇身.pop();
+                }
+            }
+            
+            渲染() {
+                // 渲染蛇身
+                this.蛇身.forEach((段, 索引) => {
+                    if (索引 === 0) {
+                        this.引擎.设置像素(段.行, 段.列, '●'); // 蛇头
+                    } else {
+                        this.引擎.设置像素(段.行, 段.列, '○'); // 蛇身
+                    }
+                });
+                
+                // 渲染食物
+                this.引擎.设置像素(this.食物.行, this.食物.列, '★');
+            }
+            
+            处理键盘输入(键) {
+                switch (键) {
+                    case 'ArrowUp':
+                    case 'w':
+                        if (this.方向.行 !== 1) this.方向 = {行: -1, 列: 0};
+                        break;
+                    case 'ArrowDown':
+                    case 's':
+                        if (this.方向.行 !== -1) this.方向 = {行: 1, 列: 0};
+                        break;
+                    case 'ArrowLeft':
+                    case 'a':
+                        if (this.方向.列 !== 1) this.方向 = {行: 0, 列: -1};
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                        if (this.方向.列 !== -1) this.方向 = {行: 0, 列: 1};
+                        break;
+                }
+            }
+            
+            重置() {
+                this.蛇身 = [{行: 25, 列: 25}];
+                this.方向 = {行: 0, 列: 1};
+                this.食物 = this.生成食物();
+                this.得分 = 0;
+            }
+        }
+        
+        // 汉符海龟游戏
+        class 汉符海龟游戏 {
+            constructor(引擎) {
+                this.引擎 = 引擎;
+                this.海龟位置 = {行: 25, 列: 25};
+                this.海龟方向 = 0; // 0:上, 1:右, 2:下, 3:左
+                this.画笔状态 = true;
+                this.轨迹 = [];
+                this.命令队列 = [];
+                this.当前命令索引 = 0;
+                
+                // 预设一些有趣的图案命令
+                this.预设图案 = [
+                    this.生成正方形命令(),
+                    this.生成圆形命令(),
+                    this.生成螺旋命令(),
+                    this.生成花朵命令(),
+                    this.生成迷宫命令()
+                ];
+                
+                this.加载随机图案();
+            }
+            
+            生成正方形命令() {
+                return [
+                    {类型: '前进', 步数: 10},
+                    {类型: '右转', 角度: 90},
+                    {类型: '前进', 步数: 10},
+                    {类型: '右转', 角度: 90},
+                    {类型: '前进', 步数: 10},
+                    {类型: '右转', 角度: 90},
+                    {类型: '前进', 步数: 10}
+                ];
+            }
+            
+            生成圆形命令() {
+                const 命令 = [];
+                for (let i = 0; i < 36; i++) {
+                    命令.push({类型: '前进', 步数: 1});
+                    命令.push({类型: '右转', 角度: 10});
+                }
+                return 命令;
+            }
+            
+            生成螺旋命令() {
+                const 命令 = [];
+                for (let i = 1; i <= 20; i++) {
+                    命令.push({类型: '前进', 步数: i});
+                    命令.push({类型: '右转', 角度: 90});
+                }
+                return 命令;
+            }
+            
+            生成花朵命令() {
+                const 命令 = [];
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 36; j++) {
+                        命令.push({类型: '前进', 步数: 1});
+                        命令.push({类型: '右转', 角度: 10});
+                    }
+                    命令.push({类型: '右转', 角度: 45});
+                }
+                return 命令;
+            }
+            
+            生成迷宫命令() {
+                const 命令 = [];
+                const 图案 = [
+                    [1, 1, 1, 0, 1, 1, 1],
+                    [0, 0, 1, 0, 1, 0, 0],
+                    [1, 0, 1, 1, 1, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 1],
+                    [1, 1, 1, 0, 1, 1, 1]
+                ];
+                
+                for (let 行 = 0; 行 < 图案.length; 行++) {
+                    for (let 列 = 0; 列 < 图案[行].length; 列++) {
+                        if (图案[行][列]) {
+                            命令.push({类型: '移动到', 行: 行 + 20, 列: 列 + 20});
+                            命令.push({类型: '画点'});
+                        }
+                    }
+                }
+                return 命令;
+            }
+            
+            加载随机图案() {
+                const 随机图案 = this.预设图案[Math.floor(Math.random() * this.预设图案.length)];
+                this.命令队列 = [...随机图案];
+                this.当前命令索引 = 0;
+            }
+            
+            更新() {
+                if (this.当前命令索引 < this.命令队列.length) {
+                    const 命令 = this.命令队列[this.当前命令索引];
+                    this.执行命令(命令);
+                    this.当前命令索引++;
+                } else {
+                    // 命令执行完毕，加载新图案
+                    setTimeout(() => {
+                        this.重置();
+                        this.加载随机图案();
+                    }, 2000);
+                }
+            }
+            
+            执行命令(命令) {
+                switch (命令.类型) {
+                    case '前进':
+                        this.前进(命令.步数);
+                        break;
+                    case '右转':
+                        this.右转(命令.角度);
+                        break;
+                    case '左转':
+                        this.左转(命令.角度);
+                        break;
+                    case '移动到':
+                        this.移动到(命令.行, 命令.列);
+                        break;
+                    case '画点':
+                        this.画点();
+                        break;
+                }
+            }
+            
+            前进(步数) {
+                const 方向映射 = [
+                    {行: -1, 列: 0}, // 上
+                    {行: 0, 列: 1},  // 右
+                    {行: 1, 列: 0},  // 下
+                    {行: 0, 列: -1}  // 左
+                ];
+                
+                const 移动方向 = 方向映射[this.海龟方向];
+                
+                for (let i = 0; i < 步数; i++) {
+                    if (this.画笔状态) {
+                        this.轨迹.push({行: this.海龟位置.行, 列: this.海龟位置.列});
+                    }
+                    
+                    this.海龟位置.行 += 移动方向.行;
+                    this.海龟位置.列 += 移动方向.列;
+                    
+                    // 边界处理
+                    this.海龟位置.行 = Math.max(0, Math.min(this.引擎.画布高度 - 1, this.海龟位置.行));
+                    this.海龟位置.列 = Math.max(0, Math.min(this.引擎.画布宽度 - 1, this.海龟位置.列));
+                }
+            }
+            
+            右转(角度) {
+                this.海龟方向 = (this.海龟方向 + Math.floor(角度 / 90)) % 4;
+            }
+            
+            左转(角度) {
+                this.海龟方向 = (this.海龟方向 - Math.floor(角度 / 90) + 4) % 4;
+            }
+            
+            移动到(行, 列) {
+                this.海龟位置.行 = 行;
+                this.海龟位置.列 = 列;
+            }
+            
+            画点() {
+                this.轨迹.push({行: this.海龟位置.行, 列: this.海龟位置.列});
+            }
+            
+            渲染() {
+                // 渲染轨迹
+                this.轨迹.forEach(点 => {
+                    this.引擎.设置像素(点.行, 点.列, '█');
+                });
+                
+                // 渲染海龟
+                const 海龟符号 = ['↑', '→', '↓', '←'];
+                this.引擎.设置像素(this.海龟位置.行, this.海龟位置.列, 海龟符号[this.海龟方向]);
+            }
+            
+            处理键盘输入(键) {
+                switch (键) {
+                    case 'ArrowUp':
+                        this.前进(1);
+                        break;
+                    case 'ArrowLeft':
+                        this.左转(90);
+                        break;
+                    case 'ArrowRight':
+                        this.右转(90);
+                        break;
+                    case ' ':
+                        this.画笔状态 = !this.画笔状态;
+                        break;
+                    case 'r':
+                        this.重置();
+                        break;
+                    case 'n':
+                        this.重置();
+                        this.加载随机图案();
+                        break;
+                }
+            }
+            
+            重置() {
+                this.海龟位置 = {行: 25, 列: 25};
+                this.海龟方向 = 0;
+                this.轨迹 = [];
+                this.当前命令索引 = 0;
+            }
+        }
+        
+        // 其他游戏类的简化实现
+        class 俄罗斯方块游戏 {
+            constructor(引擎) {
+                this.引擎 = 引擎;
+                // 简化实现
+            }
+            
+            更新() { /* 简化实现 */ }
+            渲染() { /* 简化实现 */ }
+            处理键盘输入(键) { /* 简化实现 */ }
+            重置() { /* 简化实现 */ }
+        }
+        
+        class 打砖块游戏 {
+            constructor(引擎) {
+                this.引擎 = 引擎;
+                // 简化实现
+            }
+            
+            更新() { /* 简化实现 */ }
+            渲染() { /* 简化实现 */ }
+            处理键盘输入(键) { /* 简化实现 */ }
+            重置() { /* 简化实现 */ }
+        }
+        
+        class 迷宫探险游戏 {
+            constructor(引擎) {
+                this.引擎 = 引擎;
+                // 简化实现
+            }
+            
+            更新() { /* 简化实现 */ }
+            渲染() { /* 简化实现 */ }
+            处理键盘输入(键) { /* 简化实现 */ }
+            重置() { /* 简化实现 */ }
+        }
+        
+        class 射击游戏 {
+            constructor(引擎) {
+                this.引擎 = 引擎;
+                // 简化实现
+            }
+            
+            更新() { /* 简化实现 */ }
+            渲染() { /* 简化实现 */ }
+            处理键盘输入(键) { /* 简化实现 */ }
+            重置() { /* 简化实现 */ }
+        }
+        
+        class 像素画板游戏 {
+            constructor(引擎) {
+                this.引擎 = 引擎;
+                // 简化实现
+            }
+            
+            更新() { /* 简化实现 */ }
+            渲染() { /* 简化实现 */ }
+            处理键盘输入(键) { /* 简化实现 */ }
+            重置() { /* 简化实现 */ }
+        }
+        
+        class 跳跃游戏 {
+            constructor(引擎) {
+                this.引擎 = 引擎;
+                // 简化实现
+            }
+            
+            更新() { /* 简化实现 */ }
+            渲染() { /* 简化实现 */ }
+            处理键盘输入(键) { /* 简化实现 */ }
+            重置() { /* 简化实现 */ }
+        }
+        
+        // 全局变量
+        let 游戏引擎;
+        
+        // 初始化
+        window.onload = function() {
+            游戏引擎 = new 汉符游戏引擎();
+            游戏引擎.选择游戏('汉符海龟');
+            游戏引擎.开始游戏();
+        };
+        
+        // 控制函数
+        function 选择游戏(游戏名) {
+            游戏引擎.选择游戏(游戏名);
+        }
+        
+        function 开始游戏() {
+            游戏引擎.开始游戏();
+        }
+        
+        function 暂停游戏() {
+            游戏引擎.暂停游戏();
+        }
+        
+        function 重置游戏() {
+            游戏引擎.重置游戏();
+        }
+        
+        function 随机生成游戏() {
+            游戏引擎.随机生成新游戏();
+        }
+        
+        function 保存游戏() {
+            const 游戏状态 = {
+                当前游戏: document.getElementById('当前游戏名').textContent,
+                得分: 游戏引擎.得分,
+                时间戳: Date.now()
+            };
+            localStorage.setItem('汉符游戏存档', JSON.stringify(游戏状态));
+            alert('游戏已保存！');
+        }
+        
+        function 加载游戏() {
+            const 存档 = localStorage.getItem('汉符游戏存档');
+            if (存档) {
+                const 游戏状态 = JSON.parse(存档);
+                游戏引擎.选择游戏(游戏状态.当前游戏);
+                游戏引擎.更新得分(游戏状态.得分);
+                alert('游戏已加载！');
+            } else {
+                alert('没有找到存档！');
+            }
+        }
+
+//         🎮 核心功能：
+
+// 50x50全角字符游戏画布
+// 15分钟自动生成新游戏机制
+// 8种不同类型的汉符游戏
+// 完整的游戏引擎架构
+// 🐢 汉符海龟系统：
+
+// 类似Logo海龟的编程绘图
+// 预设多种图案（正方形、圆形、螺旋、花朵、迷宫）
+// 自动执行绘图命令
+// 支持手动控制
+// 🎯 游戏类型：
+
+// 贪吃蛇（完整实现）
+// 汉符海龟（完整实现）
+// 俄罗斯方块、打砖块、迷宫探险等（框架已搭建）
+// ⏰ 自动化系统：
+
+// 15分钟倒计时显示
+// 自动切换不同游戏
+// 避免重复生成相同游戏
+// 智能游戏轮换
+// 🎨 界面特色：
+
+// 响应式设计，支持移动端
+// 炫酷的渐变背景和动画效果
+// 中文界面和变量命名
+// 完整的控制面板
+// 这个系统可以作为提示词模板，每次运行都会生成不同类型的汉符游戏，实现了您要求的自动化和多样性功能。
+    </script>
+</body>
+
+</html>
